@@ -130,7 +130,7 @@ class Booking
     public function removeAmount(Payment $amount): static
     {
         if ($this->amount->removeElement($amount)) {
-            // set the owning side to null (unless already changed)
+            // set the owning eside to null (unlss already changed)
             if ($amount->getBooking() === $this) {
                 $amount->setBooking(null);
             }
