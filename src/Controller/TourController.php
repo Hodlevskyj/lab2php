@@ -6,11 +6,13 @@ use App\Entity\Tour;
 use App\Form\TourType;
 use App\Service\TourService;
 use App\Repository\TourRepository;
+use App\Service\TourValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Form\FormError;
 
 
 #[Route('/tour')]
@@ -18,9 +20,11 @@ final class TourController extends AbstractController
 {
 
     private TourService $tourService;
+    private TourValidatorService $tourValidatorService;
 
-    public function __construct(TourService $tourService){
+    public function __construct(TourService $tourService, TourValidatorService $tourValidatorService){
         $this->tourService = $tourService;
+        $this->tourValidatorService = $tourValidatorService;
     }
 
     #[Route(name: 'app_tour_index', methods: ['GET'])]
@@ -33,16 +37,35 @@ final class TourController extends AbstractController
 
 
     #[Route('/new', name: 'app_tour_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $tour = new Tour();
         $form = $this->createForm(TourType::class, $tour);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            //функція tourservice
-            $this->tourService->createTour($tour->getName(), $tour->getDescription(),$tour->getDuration(),$tour->getPrice());
-            return $this->redirectToRoute('app_tour_index', [], Response::HTTP_SEE_OTHER);
+            $validationErrors = $this->tourValidatorService->validateTour([
+                'name' => $tour->getName(),
+                'description' => $tour->getDescription(),
+                'duration' => $tour->getDuration(),
+                'price' => $tour->getPrice(),
+            ]);
+
+            foreach ($validationErrors as $field => $error) {
+                $form->get($field)?->addError(new FormError($error));
+            }
+
+            if ($form->isValid()) {
+                $this->tourService->createTour(
+                    $tour->getName(),
+                    $tour->getDescription(),
+                    $tour->getDuration(),
+                    $tour->getPrice(),
+
+                );
+
+                return $this->redirectToRoute('app_tour_index', [], Response::HTTP_SEE_OTHER);
+            }
         }
 
         return $this->render('tour/new.html.twig', [

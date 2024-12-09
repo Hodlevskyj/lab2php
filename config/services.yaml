@@ -7,6 +7,16 @@ parameters:
 
 services:
     #validation
+    App\Service\TouristValidatorService: ~
+    App\Service\BookingValidatorService: ~
+    App\Service\DestinationValidatorService: ~
+    App\Service\GuideValidatorService: ~
+    App\Service\PaymentValidatorService: ~
+    App\Service\PaymentMethodValidatorService: ~
+    App\Service\ReviewValidatorService: ~
+    App\Service\TourValidatorService: ~
+    App\Service\UserRoleValidatorService: ~
+
     # default configuration for services in *this* file
     _defaults:
         autowire: true      # Automatically injects dependencies in your services.

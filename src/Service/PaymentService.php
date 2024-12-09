@@ -5,7 +5,7 @@ namespace App\Service;
 use App\Entity\Booking;
 use App\Entity\Payment;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Enum\PaymentStatus;
+
 
 class PaymentService
 {

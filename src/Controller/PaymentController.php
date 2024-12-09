@@ -6,20 +6,24 @@ use App\Entity\Payment;
 use App\Form\PaymentType;
 use App\Repository\PaymentRepository;
 use App\Service\PaymentService;
+use App\Service\PaymentValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use App\Enum\PaymentStatus;
+use Symfony\Component\Form\FormError;
 
 #[Route('/payment')]
 final class PaymentController extends AbstractController
 {
     private PaymentService $paymentService;
+    private PaymentValidatorService $paymentValidatorService;
 
-    public function __construct(PaymentService $paymentService){
+    public function __construct(PaymentService $paymentService, PaymentValidatorService $paymentValidatorService)
+    {
         $this->paymentService = $paymentService;
+        $this->paymentValidatorService = $paymentValidatorService;
     }
 
     #[Route(name: 'app_payment_index', methods: ['GET'])]
@@ -31,16 +35,35 @@ final class PaymentController extends AbstractController
     }
 
     #[Route('/new', name: 'app_payment_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $payment = new Payment();
         $form = $this->createForm(PaymentType::class, $payment);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->paymentService->createPayment($payment->getBooking(),$payment->getAmount(),$payment->getPaymentDate(),$payment->getStatus());
+            // Валідація введених даних
+            $validationErrors = $this->paymentValidatorService->validatePayment([
+                'amount' => $payment->getAmount(),
+                'payment_date' => $payment->getPaymentDate(),
+                'status' => $payment->getStatus(),
+            ]);
 
-            return $this->redirectToRoute('app_payment_index', [], Response::HTTP_SEE_OTHER);
+            // Додаємо помилки в форму
+            foreach ($validationErrors as $field => $error) {
+                $form->get($field)?->addError(new FormError($error));
+            }
+
+            if ($form->isValid()) {
+                $this->paymentService->createPayment(
+                    $payment->getBooking(),
+                    $payment->getAmount(),
+                    $payment->getPaymentDate(),
+                    $payment->getStatus()
+                );
+
+                return $this->redirectToRoute('app_payment_index', [], Response::HTTP_SEE_OTHER);
+            }
         }
 
         return $this->render('payment/new.html.twig', [

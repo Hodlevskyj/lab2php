@@ -6,19 +6,23 @@ use App\Entity\Tourist;
 use App\Form\TouristType;
 use App\Repository\TouristRepository;
 use App\Service\TouristService;
+use App\Service\TouristValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Form\FormError;
 
 #[Route('/tourist')]
 final class TouristController extends AbstractController
 {
     private TouristService $touristService;
+    private TouristValidatorService $touristValidatorService;
 
-    public function __construct(TouristService $touristService){
+    public function __construct(TouristService $touristService, TouristValidatorService $touristValidatorService){
         $this->touristService = $touristService;
+        $this->touristValidatorService = $touristValidatorService;
     }
 
     #[Route(name: 'app_tourist_index', methods: ['GET'])]
@@ -30,16 +34,35 @@ final class TouristController extends AbstractController
     }
 
     #[Route('/new', name: 'app_tourist_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $tourist = new Tourist();
         $form = $this->createForm(TouristType::class, $tourist);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->touristService->createTourist($tourist->getFirstName(),$tourist->getLastName(),$tourist->getEmail(),$tourist->getPhone());
+            $validationErrors = $this->touristValidatorService->validateTourist([
+                'first_name' => $tourist->getFirstName(),
+                'last_name' => $tourist->getLastName(),
+                'email' => $tourist->getEmail(),
+                'phone' => $tourist->getPhone(),
+                'registration_date'=>$tourist->getRegistrationDate(),
+            ]);
 
-            return $this->redirectToRoute('app_tourist_index', [], Response::HTTP_SEE_OTHER);
+            foreach ($validationErrors as $field => $error) {
+                $form->get($field)?->addError(new FormError($error));
+            }
+
+            if ($form->isValid()) {
+                $this->touristService->createTourist(
+                    $tourist->getFirstName(),
+                    $tourist->getLastName(),
+                    $tourist->getEmail(),
+                    $tourist->getPhone()
+                );
+
+                return $this->redirectToRoute('app_tourist_index', [], Response::HTTP_SEE_OTHER);
+            }
         }
 
         return $this->render('tourist/new.html.twig', [

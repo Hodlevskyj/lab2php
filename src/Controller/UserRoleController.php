@@ -6,19 +6,22 @@ use App\Entity\UserRole;
 use App\Form\UserRoleType;
 use App\Repository\UserRoleRepository;
 use App\Service\UserRoleService;
+use App\Service\UserRoleValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Form\FormError;
 
 #[Route('/user_role')]
 final class UserRoleController extends AbstractController
 {
     private UserRoleService $userRoleService;
-
-    public function __construct(UserRoleService $userRoleService){
+    private UserRoleValidatorService $userRoleValidatorService;
+    public function __construct(UserRoleService $userRoleService, UserRoleValidatorService $userRoleValidatorService){
         $this->userRoleService = $userRoleService;
+        $this->userRoleValidatorService = $userRoleValidatorService;
     }
 
     #[Route(name: 'app_user_role_index', methods: ['GET'])]
@@ -37,9 +40,20 @@ final class UserRoleController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->userRoleService->createUserRole($userRole->getRoleName());
 
-            return $this->redirectToRoute('app_user_role_index', [], Response::HTTP_SEE_OTHER);
+            $validationErrors = $this->userRoleValidatorService->validateUserRole([
+                'role_name' => $userRole->getRoleName(),
+            ]);
+
+            foreach ($validationErrors as $field => $error) {
+                $form->get($field)?->addError(new FormError($error));
+            }
+
+            if ($form->isValid()) {
+                $this->userRoleService->createUserRole($userRole->getRoleName());
+
+                return $this->redirectToRoute('app_user_role_index', [], Response::HTTP_SEE_OTHER);
+            }
         }
 
         return $this->render('user_role/new.html.twig', [

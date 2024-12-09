@@ -6,19 +6,23 @@ use App\Entity\PaymentMethod;
 use App\Form\PaymentMethodType;
 use App\Repository\PaymentMethodRepository;
 use App\Service\PaymentMethodService;
+use App\Service\PaymentMethodValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Form\FormError;
 
 #[Route('/payment_method')]
 final class PaymentMethodController extends AbstractController
 {
     private PaymentMethodService $paymentMethodService;
+    private PaymentMethodValidatorService $paymentMethodValidatorService;
 
-    public function __construct(PaymentMethodService $paymentMethodService){
+    public function __construct(PaymentMethodService $paymentMethodService, PaymentMethodValidatorService $paymentMethodValidatorService){
         $this->paymentMethodService = $paymentMethodService;
+        $this->paymentMethodValidatorService = $paymentMethodValidatorService;
     }
 
     #[Route(name: 'app_payment_method_index', methods: ['GET'])]
@@ -30,20 +34,30 @@ final class PaymentMethodController extends AbstractController
     }
 
     #[Route('/new', name: 'app_payment_method_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $paymentMethod = new PaymentMethod();
         $form = $this->createForm(PaymentMethodType::class, $paymentMethod);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->paymentMethodService->createPaymentMethod($paymentMethod->getMethod());
+            $validationErrors = $this->paymentMethodValidatorService->validatePaymentMethod([
+                'method' => $paymentMethod->getMethod(),
+            ]);
 
-            return $this->redirectToRoute('app_payment_method_index', [], Response::HTTP_SEE_OTHER);
+            foreach ($validationErrors as $field => $error) {
+                $form->get($field)?->addError(new FormError($error));
+            }
+
+            if ($form->isValid()) {
+                $this->paymentMethodService->createPaymentMethod($paymentMethod->getMethod());
+
+                return $this->redirectToRoute('app_payment_method_index', [], Response::HTTP_SEE_OTHER);
+            }
         }
 
         return $this->render('payment_method/new.html.twig', [
-            'payment_method' => $paymentMethod,
+            'paymentMethod' => $paymentMethod,
             'form' => $form,
         ]);
     }

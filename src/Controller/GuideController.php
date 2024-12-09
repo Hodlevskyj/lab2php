@@ -6,19 +6,23 @@ use App\Entity\Guide;
 use App\Form\GuideType;
 use App\Repository\GuideRepository;
 use App\Service\GuideService;
+use App\Service\GuideValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Form\FormError;
 
 #[Route('/guide')]
 final class GuideController extends AbstractController
 {
     private GuideService $guideService;
+    private GuideValidatorService $guideValidator;
 
-    public function __construct(GuideService $guideService){
+    public function __construct(GuideService $guideService, GuideValidatorService $guideValidator){
         $this->guideService = $guideService;
+        $this->guideValidator = $guideValidator;
     }
 
     #[Route(name: 'app_guide_index', methods: ['GET'])]
@@ -30,17 +34,38 @@ final class GuideController extends AbstractController
     }
 
     #[Route('/new', name: 'app_guide_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $guide = new Guide();
         $form = $this->createForm(GuideType::class, $guide);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->guideService->createGuide($guide->getFirstName(), $guide->getLastName(),$guide->getEmail(),
-                $guide->getPhone(),$guide->getLanguage(),$guide->getBio());
+            $validationErrors = $this->guideValidator->validateGuide([
+                'first_name' => $guide->getFirstName(),
+                'last_name' => $guide->getLastName(),
+                'email' => $guide->getEmail(),
+                'phone' => $guide->getPhone(),
+                'language' => $guide->getLanguage(),
+                'bio' => $guide->getBio(),
+            ]);
 
-            return $this->redirectToRoute('app_guide_index', [], Response::HTTP_SEE_OTHER);
+            foreach ($validationErrors as $field => $error) {
+                $form->get($field)?->addError(new FormError($error));
+            }
+
+            if ($form->isValid()) {
+                $this->guideService->createGuide(
+                    $guide->getFirstName(),
+                    $guide->getLastName(),
+                    $guide->getEmail(),
+                    $guide->getPhone(),
+                    $guide->getLanguage(),
+                    $guide->getBio()
+                );
+
+                return $this->redirectToRoute('app_guide_index', [], Response::HTTP_SEE_OTHER);
+            }
         }
 
         return $this->render('guide/new.html.twig', [
@@ -48,6 +73,7 @@ final class GuideController extends AbstractController
             'form' => $form,
         ]);
     }
+
 
     #[Route('/{id}', name: 'app_guide_show', methods: ['GET'])]
     public function show(Guide $guide): Response

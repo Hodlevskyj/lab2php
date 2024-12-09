@@ -6,19 +6,23 @@ use App\Entity\Review;
 use App\Form\ReviewType;
 use App\Repository\ReviewRepository;
 use App\Service\ReviewService;
+use App\Service\ReviewValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Form\FormError;
 
 #[Route('/review')]
 final class ReviewController extends AbstractController
 {
     private ReviewService $reviewService;
+    private ReviewValidatorService $reviewValidatorService;
 
-    public function __construct(ReviewService $reviewService){
+    public function __construct(ReviewService $reviewService, ReviewValidatorService $reviewValidatorService){
         $this->reviewService = $reviewService;
+        $this->reviewValidatorService = $reviewValidatorService;
     }
 
     #[Route(name: 'app_review_index', methods: ['GET'])]
@@ -30,17 +34,32 @@ final class ReviewController extends AbstractController
     }
 
     #[Route('/new', name: 'app_review_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $review = new Review();
         $form = $this->createForm(ReviewType::class, $review);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->reviewService->createReview($review->getTourist(), $review->getTour(),$review->getRating(),$review->getComment(),
-                $review->getReviewDate());
+            $validationErrors = $this->reviewValidatorService->validateReview([
+                'rating' => $review->getRating(),
+                'comment' => $review->getComment(),
+            ]);
 
-            return $this->redirectToRoute('app_review_index', [], Response::HTTP_SEE_OTHER);
+            foreach ($validationErrors as $field => $error) {
+                $form->get($field)?->addError(new FormError($error));
+            }
+
+            if ($form->isValid()) {
+                $this->reviewService->createReview(
+                    $review->getTourist(),
+                    $review->getTour(),
+                    $review->getRating(),
+                    $review->getComment()
+                );
+
+                return $this->redirectToRoute('app_review_index', [], Response::HTTP_SEE_OTHER);
+            }
         }
 
         return $this->render('review/new.html.twig', [

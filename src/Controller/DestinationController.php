@@ -6,19 +6,22 @@ use App\Entity\Destination;
 use App\Form\DestinationType;
 use App\Repository\DestinationRepository;
 use App\Service\DestinationService;
+use App\Service\DestinationValidatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Form\FormError;
 
 #[Route('/destination')]
 final class DestinationController extends AbstractController
 {
     private DestinationService $destinationService;
-
-    public function __construct(DestinationService $destinationService){
+    private DestinationValidatorService $destinationValidatorService;
+    public function __construct(DestinationService $destinationService, DestinationValidatorService $destinationValidatorService){
         $this->destinationService = $destinationService;
+        $this->destinationValidatorService = $destinationValidatorService;
     }
 
     #[Route(name: 'app_destination_index', methods: ['GET'])]
@@ -30,17 +33,35 @@ final class DestinationController extends AbstractController
     }
 
     #[Route('/new', name: 'app_destination_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request): Response
     {
         $destination = new Destination();
         $form = $this->createForm(DestinationType::class, $destination);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-//            $entityManager->persist($destination);
-//            $entityManager->flush();
-            $this->destinationService->createDestination($destination->getName(),$destination->getDescription(),$destination->getCountry());
-            return $this->redirectToRoute('app_destination_index', [], Response::HTTP_SEE_OTHER);
+            // Виконуємо валідацію даних
+            $validationErrors = $this->destinationValidatorService->validateDestination([
+                'name' => $destination->getName(),
+                'description' => $destination->getDescription(),
+                'country' => $destination->getCountry(),
+            ]);
+
+            // Додаємо помилки в форму, якщо вони є
+            foreach ($validationErrors as $field => $error) {
+                $form->get($field)?->addError(new FormError($error));
+            }
+
+            // Якщо форма є валідною, зберігаємо дані
+            if ($form->isValid()) {
+                $this->destinationService->createDestination(
+                    $destination->getName(),
+                    $destination->getDescription(),
+                    $destination->getCountry()
+                );
+
+                return $this->redirectToRoute('app_destination_index', [], Response::HTTP_SEE_OTHER);
+            }
         }
 
         return $this->render('destination/new.html.twig', [
