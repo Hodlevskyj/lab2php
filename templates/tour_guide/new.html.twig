@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+
+<title>New TourGuide</title>
+
+{% block body %}
+    <h1>Create new TourGuide</h1>
+
+    {{ include('tour_guide/_form.html.twig') }}
+
+    <a href="{{ path('app_tour_guide_index') }}">back to list</a>
+{% endblock %}

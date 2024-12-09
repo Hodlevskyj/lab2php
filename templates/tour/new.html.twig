@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+
+<title>New Tour</title>
+
+{% block body %}
+    <h1>Create new Tour</h1>
+
+    {{ include('tour/_form.html.twig') }}
+
+    <a href="{{ path('app_tour_index') }}">back to list</a>
+{% endblock %}

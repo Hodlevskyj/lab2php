@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+
+<title>TourGuide index</title>
+
+{% block body %}
+    <h1>TourGuide index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for tour_guide in tour_guides %}
+            <tr>
+                <td>{{ tour_guide.id }}</td>
+                <td>
+                    <a href="{{ path('app_tour_guide_show', {'id': tour_guide.id}) }}">show</a>
+                    <a href="{{ path('app_tour_guide_edit', {'id': tour_guide.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="2">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_tour_guide_new') }}">Create new</a>
+{% endblock %}

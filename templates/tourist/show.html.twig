@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<title>Tourist</title>
+
+{% block body %}
+    <h1>Tourist</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ tourist.id }}</td>
+            </tr>
+            <tr>
+                <th>First_name</th>
+                <td>{{ tourist.firstName }}</td>
+            </tr>
+            <tr>
+                <th>Last_name</th>
+                <td>{{ tourist.lastName }}</td>
+            </tr>
+            <tr>
+                <th>Email</th>
+                <td>{{ tourist.email }}</td>
+            </tr>
+            <tr>
+                <th>Phone</th>
+                <td>{{ tourist.phone }}</td>
+            </tr>
+            <tr>
+                <th>Registration_date</th>
+                <td>{{ tourist.registrationDate ? tourist.registrationDate|date('Y-m-d H:i:s') : '' }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_tourist_index') }}">back to list</a>
+
+    <a href="{{ path('app_tourist_edit', {'id': tourist.id}) }}">edit</a>
+
+    {{ include('tourist/_delete_form.html.twig') }}
+{% endblock %}

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Entity;
 
 use App\Repository\ReviewRepository;
@@ -67,6 +66,10 @@ class Review
 
     public function setRating(int $rating): static
     {
+        if ($rating > 10) {
+            throw new \InvalidArgumentException('Rating cannot be greater than 10.');
+        }
+
         $this->rating = $rating;
 
         return $this;
@@ -96,3 +99,4 @@ class Review
         return $this;
     }
 }
+

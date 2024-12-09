@@ -3,66 +3,86 @@
 namespace App\Controller;
 
 use App\Entity\Destination;
+use App\Form\DestinationType;
+use App\Repository\DestinationRepository;
+use App\Service\DestinationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-class DestinationController extends AbstractController
+#[Route('/destination')]
+final class DestinationController extends AbstractController
 {
-    #[Route('/destination/create', name: 'create_destination',methods: ['POST'])]
-    public function create(Request $request,EntityManagerInterface $entityManager): Response
-    {
-        $data=json_decode($request->getContent(),true);
+    private DestinationService $destinationService;
 
+    public function __construct(DestinationService $destinationService){
+        $this->destinationService = $destinationService;
+    }
+
+    #[Route(name: 'app_destination_index', methods: ['GET'])]
+    public function index(DestinationRepository $destinationRepository): Response
+    {
+        return $this->render('destination/index.html.twig', [
+            'destinations' => $destinationRepository->findAll(),
+        ]);
+    }
+
+    #[Route('/new', name: 'app_destination_new', methods: ['GET', 'POST'])]
+    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    {
         $destination = new Destination();
-        $destination->setName($data['name']);
-        $destination->setDescription($data['description']);
-        $destination->setCountry($data['country']);
-        $entityManager->persist($destination);
+        $form = $this->createForm(DestinationType::class, $destination);
+        $form->handleRequest($request);
 
-        $entityManager->persist($destination);
-        $entityManager->flush();
-
-        return new Response('Create destination success with id ' . $destination->getId(), Response::HTTP_CREATED);
-    }
-
-    #[Route('/destination', name: 'get_destinations', methods: ['GET'])]
-    public function read(EntityManagerInterface $entityManager): Response
-    {
-        $destination = $entityManager->getRepository(Destination::class)->findAll();
-        return $this->json($destination);
-    }
-
-    #[Route('/destination/{id}', name: 'update_destination', methods: ['PUT'])]
-    public function update(int $id,Request $request, EntityManagerInterface $entityManager): Response
-    {
-        $destination = $entityManager->getRepository(Destination::class)->find($id);
-        if(!$destination){
-            return new Response(
-                'Destination not found', Response::HTTP_NOT_FOUND);
+        if ($form->isSubmitted() && $form->isValid()) {
+//            $entityManager->persist($destination);
+//            $entityManager->flush();
+            $this->destinationService->createDestination($destination->getName(),$destination->getDescription(),$destination->getCountry());
+            return $this->redirectToRoute('app_destination_index', [], Response::HTTP_SEE_OTHER);
         }
-        $data=json_decode($request->getContent(),true);
 
-        $destination->setName($data['name'] ?? $destination->getName());
-        $destination->setDescription($data['description'] ?? $destination->getDescription());
-        $destination->setCountry($data['country'] ?? $destination->getCountry());
-
-        $entityManager->flush();
-
-        return new Response('Update destination success with id ' . $destination->getId(), Response::HTTP_OK);
+        return $this->render('destination/new.html.twig', [
+            'destination' => $destination,
+            'form' => $form,
+        ]);
     }
-    #[Route('/destination/{id}', name: 'delete_destination', methods: ['DELETE'])]
-    public function delete(int $id, EntityManagerInterface $entityManager): Response
-    {
-        $destination = $entityManager->getRepository(Destination::class)->find($id);
-        if(!$destination){
-            return new Response('Destination not found', Response::HTTP_NOT_FOUND);
-        }
-        $entityManager->remove($destination);
-        $entityManager->flush();
 
-        return new Response('Delete destination success with id ' . $destination->getId(), Response::HTTP_OK);
+    #[Route('/{id}', name: 'app_destination_show', methods: ['GET'])]
+    public function show(Destination $destination): Response
+    {
+        return $this->render('destination/show.html.twig', [
+            'destination' => $destination,
+        ]);
+    }
+
+    #[Route('/{id}/edit', name: 'app_destination_edit', methods: ['GET', 'POST'])]
+    public function edit(Request $request, Destination $destination, EntityManagerInterface $entityManager): Response
+    {
+        $form = $this->createForm(DestinationType::class, $destination);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->flush();
+
+            return $this->redirectToRoute('app_destination_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('destination/edit.html.twig', [
+            'destination' => $destination,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/{id}', name: 'app_destination_delete', methods: ['POST'])]
+    public function delete(Request $request, Destination $destination, EntityManagerInterface $entityManager): Response
+    {
+        if ($this->isCsrfTokenValid('delete'.$destination->getId(), $request->getPayload()->getString('_token'))) {
+            $entityManager->remove($destination);
+            $entityManager->flush();
+        }
+
+        return $this->redirectToRoute('app_destination_index', [], Response::HTTP_SEE_OTHER);
     }
 }

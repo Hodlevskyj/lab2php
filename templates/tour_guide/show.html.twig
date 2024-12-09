@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+<title>TourGuide</title>
+
+{% block body %}
+    <h1>TourGuide</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ tour_guide.id }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_tour_guide_index') }}">back to list</a>
+
+    <a href="{{ path('app_tour_guide_edit', {'id': tour_guide.id}) }}">edit</a>
+
+    {{ include('tour_guide/_delete_form.html.twig') }}
+{% endblock %}

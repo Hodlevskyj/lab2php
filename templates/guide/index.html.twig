@@ -1,20 +1,45 @@
-{% extends 'base.html.twig' %}
+<!DOCTYPE html>
 
-{% block title %}Hello GuideController!{% endblock %}
+<title>Guide index</title>
 
 {% block body %}
-<style>
-    .example-wrapper { margin: 1em auto; max-width: 800px; width: 95%; font: 18px/1.5 sans-serif; }
-    .example-wrapper code { background: #F5F5F5; padding: 2px 6px; }
-</style>
+    <h1>Guide index</h1>
 
-<div class="example-wrapper">
-    <h1>Hello {{ controller_name }}! ✅</h1>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>First_name</th>
+                <th>Last_name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Language</th>
+                <th>Bio</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for guide in guides %}
+            <tr>
+                <td>{{ guide.id }}</td>
+                <td>{{ guide.firstName }}</td>
+                <td>{{ guide.lastName }}</td>
+                <td>{{ guide.email }}</td>
+                <td>{{ guide.phone }}</td>
+                <td>{{ guide.language }}</td>
+                <td>{{ guide.bio }}</td>
+                <td>
+                    <a href="{{ path('app_guide_show', {'id': guide.id}) }}">show</a>
+                    <a href="{{ path('app_guide_edit', {'id': guide.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="8">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 
-    This friendly message is coming from:
-    <ul>
-        <li>Your controller at <code>D:/політех/php/tourismlab2/lab2/src/Controller/GuideController.php</code></li>
-        <li>Your template at <code>D:/політех/php/tourismlab2/lab2/templates/guide/index.html.twig</code></li>
-    </ul>
-</div>
+    <a href="{{ path('app_guide_new') }}">Create new</a>
 {% endblock %}

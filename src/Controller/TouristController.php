@@ -3,70 +3,85 @@
 namespace App\Controller;
 
 use App\Entity\Tourist;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\Request;
+use App\Form\TouristType;
+use App\Repository\TouristRepository;
+use App\Service\TouristService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-class TouristController extends AbstractController
+#[Route('/tourist')]
+final class TouristController extends AbstractController
 {
-    #[Route('/tourist/create', name: 'create_tourist',methods: ['POST'])]
-    public function create(Request $request,EntityManagerInterface $entityManager): Response
-    {
-        $data=json_decode($request->getContent(),true);
+    private TouristService $touristService;
 
+    public function __construct(TouristService $touristService){
+        $this->touristService = $touristService;
+    }
+
+    #[Route(name: 'app_tourist_index', methods: ['GET'])]
+    public function index(TouristRepository $touristRepository): Response
+    {
+        return $this->render('tourist/index.html.twig', [
+            'tourists' => $touristRepository->findAll(),
+        ]);
+    }
+
+    #[Route('/new', name: 'app_tourist_new', methods: ['GET', 'POST'])]
+    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    {
         $tourist = new Tourist();
-        $tourist->setFirstName($data['name']);
-        $tourist->setLastName($data['surname']);
-        $tourist->setEmail($data['email']);
-        $tourist->setPhone($data['phone']);
-        $tourist->setRegistrationDate(new \DateTime());
+        $form = $this->createForm(TouristType::class, $tourist);
+        $form->handleRequest($request);
 
-        $entityManager->persist($tourist);
-        $entityManager->flush();
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->touristService->createTourist($tourist->getFirstName(),$tourist->getLastName(),$tourist->getEmail(),$tourist->getPhone());
 
-        return new Response('Create tourist success with id ' . $tourist->getId(), Response::HTTP_CREATED);
-    }
-
-    #[Route('/tourist', name: 'get_tourists', methods: ['GET'])]
-    public function read(EntityManagerInterface $entityManager): Response
-    {
-        $tourist = $entityManager->getRepository(Tourist::class)->findAll();
-        return $this->json($tourist, Response::HTTP_OK);
-    }
-
-    #[Route('/tourist/{id}', name: 'update_tourist', methods: ['PUT'])]
-    public function update(int $id,Request $request, EntityManagerInterface $entityManager): Response
-    {
-        $tourist = $entityManager->getRepository(Tourist::class)->find($id);
-        if(!$tourist){
-            return new Response(
-                'Tourist not found', Response::HTTP_NOT_FOUND);
+            return $this->redirectToRoute('app_tourist_index', [], Response::HTTP_SEE_OTHER);
         }
-        $data=json_decode($request->getContent(),true);
 
-        $tourist->setFirstName($data['name'] ?? $tourist->getFirstName());
-        $tourist->setLastName($data['surname'] ?? $tourist->getLastName());
-        $tourist->setEmail($data['email'] ?? $tourist->getEmail());
-        $tourist->setPhone($data['phone'] ?? $tourist->getPhone());
-
-        $entityManager->persist($tourist);
-        $entityManager->flush();
-
-        return new Response('Update Tourist success with id ' . $tourist->getId(), Response::HTTP_OK);
+        return $this->render('tourist/new.html.twig', [
+            'tourist' => $tourist,
+            'form' => $form,
+        ]);
     }
 
-    #[Route('/tourist/{id}', name: 'delete_tourist', methods: ['DELETE'])]
-    public function delete(int $id, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', name: 'app_tourist_show', methods: ['GET'])]
+    public function show(Tourist $tourist): Response
     {
-        $tourist = $entityManager->getRepository(Tourist::class)->find($id);
-        if(!$tourist){
-            return new Response('Tourist not found', Response::HTTP_NOT_FOUND);
-        }
-        $entityManager->remove($tourist);
-        $entityManager->flush();
+        return $this->render('tourist/show.html.twig', [
+            'tourist' => $tourist,
+        ]);
+    }
 
-        return new Response('Delete tourist success with id ' . $tourist->getId(), Response::HTTP_OK);
+    #[Route('/{id}/edit', name: 'app_tourist_edit', methods: ['GET', 'POST'])]
+    public function edit(Request $request, Tourist $tourist, EntityManagerInterface $entityManager): Response
+    {
+        $form = $this->createForm(TouristType::class, $tourist);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->flush();
+
+            return $this->redirectToRoute('app_tourist_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('tourist/edit.html.twig', [
+            'tourist' => $tourist,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/{id}', name: 'app_tourist_delete', methods: ['POST'])]
+    public function delete(Request $request, Tourist $tourist, EntityManagerInterface $entityManager): Response
+    {
+        if ($this->isCsrfTokenValid('delete'.$tourist->getId(), $request->getPayload()->getString('_token'))) {
+            $entityManager->remove($tourist);
+            $entityManager->flush();
+        }
+
+        return $this->redirectToRoute('app_tourist_index', [], Response::HTTP_SEE_OTHER);
     }
 }

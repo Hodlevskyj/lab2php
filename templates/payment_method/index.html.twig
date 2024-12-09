@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<title>PaymentMethod index</title>
+
+{% block body %}
+    <h1>PaymentMethod index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Method</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for payment_method in payment_methods %}
+            <tr>
+                <td>{{ payment_method.id }}</td>
+                <td>{{ payment_method.method }}</td>
+                <td>
+                    <a href="{{ path('app_payment_method_show', {'id': payment_method.id}) }}">show</a>
+                    <a href="{{ path('app_payment_method_edit', {'id': payment_method.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="3">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_payment_method_new') }}">Create new</a>
+{% endblock %}

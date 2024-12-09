@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+
+<title>New Guide</title>
+
+{% block body %}
+    <h1>Create new Guide</h1>
+
+    {{ include('guide/_form.html.twig') }}
+
+    <a href="{{ path('app_guide_index') }}">back to list</a>
+{% endblock %}
