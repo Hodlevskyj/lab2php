@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
 class Booking
@@ -18,25 +19,36 @@ class Booking
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Tourist must not be null')]
     private ?Tourist $tourist = null;
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Tour must not be null')]
     private ?Tour $tour = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Assert\NotBlank(message: 'Booking date is required')]
+    #[Assert\Type(\DateTimeInterface::class, message: 'Invalid date format')]
+    #[Assert\GreaterThan('today', message: 'Booking date must be in the future')]
     private ?\DateTimeInterface $booking_date = null;
 
     #[ORM\Column]
+    #[Assert\NotNull(message: 'Number of people must not be null')]
+    #[Assert\Positive(message: 'Number of people must be a positive number')]
+    #[Assert\LessThanOrEqual(value: 100, message: 'Number of people cannot exceed 100')] // Максимальне значення за вашим бажанням
     private ?int $number_of_people = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Total price is required')]
+    #[Assert\PositiveOrZero(message: 'Total price must be a positive number or zero')]
     private ?string $total_price = null;
 
     /**
      * @var Collection<int, Payment>
      */
     #[ORM\OneToMany(targetEntity: Payment::class, mappedBy: 'booking')]
+    #[Assert\Valid] // Перевірка вкладених об'єктів (якщо Payment також має валідацію)
     private Collection $amount;
 
     public function __construct()

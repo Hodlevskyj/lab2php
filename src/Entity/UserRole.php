@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\UserRoleRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRoleRepository::class)]
 class UserRole
@@ -13,7 +14,12 @@ class UserRole
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 100)]
+    #[ORM\Column(length: 100, unique: true)]
+    #[Assert\NotBlank(message: 'Role name is required')]
+    #[Assert\Length(
+        max: 100,
+        maxMessage: 'Role name cannot exceed {{ limit }} characters'
+    )]
     private ?string $role_name = null;
 
     public function getId(): ?int

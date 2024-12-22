@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TourRepository::class)]
 class Tour
@@ -17,15 +18,29 @@ class Tour
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
+    #[Assert\NotBlank(message: 'The tour name is required')]
+    #[Assert\Length(
+        max: 100,
+        maxMessage: 'The tour name cannot be longer than {{ limit }} characters'
+    )]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Assert\NotBlank(message: 'The description is required')]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: 'The description cannot exceed {{ limit }} characters'
+    )]
     private ?string $description = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank(message: 'The duration is required')]
+    #[Assert\Positive(message: 'The duration must be a positive number')]
     private ?int $duration = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
+    #[Assert\NotBlank(message: 'The price is required')]
+    #[Assert\Positive(message: 'The price must be greater than zero')]
     private ?string $price = null;
 
     /**

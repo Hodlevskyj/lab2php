@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\TourGuideRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: TourGuideRepository::class)]
 class TourGuide
@@ -15,9 +16,12 @@ class TourGuide
 
     #[ORM\ManyToOne(inversedBy: 'tourGuides')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'A tour must be associated with a tour guide')]
     private ?Tour $tour = null;
 
     #[ORM\ManyToOne(inversedBy: 'tourGuides')]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'A guide must be assigned to the tour')]
     private ?Guide $guide = null;
 
     public function getId(): ?int
