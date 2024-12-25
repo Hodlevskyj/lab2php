@@ -25,10 +25,19 @@ final class DestinationController extends AbstractController
     }
 
     #[Route(name: 'app_destination_index', methods: ['GET'])]
-    public function index(DestinationRepository $destinationRepository): Response
+    public function index(DestinationRepository $destinationRepository, Request $request): Response
     {
+        $itemsPerPage = (int)$request->query->get('itemsPerPage', 2);
+        $page = (int)$request->query->get('page', 1);
+
+        $paginationData = $destinationRepository->getPaginatedDestinations($itemsPerPage, $page);
+
         return $this->render('destination/index.html.twig', [
-            'destinations' => $destinationRepository->findAll(),
+            'destinations' => $paginationData['destinations'],
+            'totalItems' => $paginationData['totalItems'],
+            'totalPages' => $paginationData['totalPages'],
+            'currentPage' => $page,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 

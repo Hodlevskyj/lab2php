@@ -26,10 +26,19 @@ final class TouristController extends AbstractController
     }
 
     #[Route(name: 'app_tourist_index', methods: ['GET'])]
-    public function index(TouristRepository $touristRepository): Response
+    public function index(TouristRepository $touristRepository,Request $request): Response
     {
+        $itemsPerPage = (int)$request->query->get('itemsPerPage', 2);
+        $page = (int)$request->query->get('page', 1);
+
+        $paginationData = $touristRepository->getPaginatedTourists($itemsPerPage, $page);
+
         return $this->render('tourist/index.html.twig', [
-            'tourists' => $touristRepository->findAll(),
+            'tourists' => $paginationData['tourists'],
+            'totalItems' => $paginationData['totalItems'],
+            'totalPages' => $paginationData['totalPages'],
+            'currentPage' => $page,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 

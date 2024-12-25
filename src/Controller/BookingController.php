@@ -24,10 +24,19 @@ final class BookingController extends AbstractController
         $this->bookingValidatorService = $bookingValidatorService;
     }
     #[Route(name: 'app_booking_index', methods: ['GET'])]
-    public function index(BookingRepository $bookingRepository): Response
+    public function index(BookingRepository $bookingRepository, Request $request): Response
     {
+        $itemsPerPage = (int)($request->query->get('itemsPerPage', 2));
+        $page = (int)$request->query->get('page', 1);
+
+        $bookingsData = $bookingRepository->getAllBookingsByFilter($request->query->all(), $itemsPerPage, $page);
+
         return $this->render('booking/index.html.twig', [
-            'bookings' => $bookingRepository->findAll(),
+            'bookings' => $bookingsData['bookings'],
+            'totalItems' => $bookingsData['totalItems'],
+            'totalPages' => $bookingsData['totalPages'],
+            'currentPage' => $page,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 

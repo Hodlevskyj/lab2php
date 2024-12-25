@@ -26,10 +26,19 @@ final class ReviewController extends AbstractController
     }
 
     #[Route(name: 'app_review_index', methods: ['GET'])]
-    public function index(ReviewRepository $reviewRepository): Response
+    public function index(ReviewRepository $reviewRepository,Request $request): Response
     {
+        $itemsPerPage = (int)$request->query->get('itemsPerPage', 2);
+        $page = (int)$request->query->get('page', 1);
+
+        $paginationData = $reviewRepository->getPaginatedReviews($itemsPerPage, $page);
+
         return $this->render('review/index.html.twig', [
-            'reviews' => $reviewRepository->findAll(),
+            'reviews' => $paginationData['reviews'],
+            'totalItems' => $paginationData['totalItems'],
+            'totalPages' => $paginationData['totalPages'],
+            'currentPage' => $page,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 

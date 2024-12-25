@@ -26,10 +26,19 @@ final class GuideController extends AbstractController
     }
 
     #[Route(name: 'app_guide_index', methods: ['GET'])]
-    public function index(GuideRepository $guideRepository): Response
+    public function index(GuideRepository $guideRepository,Request $request): Response
     {
+        $itemsPerPage = (int)$request->query->get('itemsPerPage', 1);
+        $page = (int)$request->query->get('page', 1);
+
+        $paginationData = $guideRepository->getPaginatedGuides($itemsPerPage, $page);
+
         return $this->render('guide/index.html.twig', [
-            'guides' => $guideRepository->findAll(),
+            'guides' => $paginationData['guides'],
+            'totalItems' => $paginationData['totalItems'],
+            'totalPages' => $paginationData['totalPages'],
+            'currentPage' => $page,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 

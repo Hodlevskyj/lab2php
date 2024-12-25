@@ -23,10 +23,19 @@ final class TourGuideController extends AbstractController
     }
 
     #[Route(name: 'app_tour_guide_index', methods: ['GET'])]
-    public function index(TourGuideRepository $tourGuideRepository): Response
+    public function index(TourGuideRepository $tourGuideRepository,Request $request,): Response
     {
+        $itemsPerPage = (int)$request->query->get('itemsPerPage', 2);
+        $page = (int)$request->query->get('page', 1);
+
+        $paginationData = $tourGuideRepository->getPaginatedTourGuides($itemsPerPage, $page);
+
         return $this->render('tour_guide/index.html.twig', [
-            'tour_guides' => $tourGuideRepository->findAll(),
+            'tour_guides' => $paginationData['tourGuides'],
+            'totalItems' => $paginationData['totalItems'],
+            'totalPages' => $paginationData['totalPages'],
+            'currentPage' => $page,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 

@@ -27,10 +27,19 @@ final class PaymentController extends AbstractController
     }
 
     #[Route(name: 'app_payment_index', methods: ['GET'])]
-    public function index(PaymentRepository $paymentRepository): Response
+    public function index(PaymentRepository $paymentRepository,Request $request): Response
     {
+        $itemsPerPage = (int)$request->query->get('itemsPerPage', 1);
+        $page = (int)$request->query->get('page', 1);
+
+        $paginationData = $paymentRepository->getPaginatedPayments($itemsPerPage, $page);
+
         return $this->render('payment/index.html.twig', [
-            'payments' => $paymentRepository->findAll(),
+            'payments' => $paginationData['payments'],
+            'totalItems' => $paginationData['totalItems'],
+            'totalPages' => $paginationData['totalPages'],
+            'currentPage' => $page,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 

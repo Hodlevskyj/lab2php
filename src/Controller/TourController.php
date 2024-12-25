@@ -28,10 +28,19 @@ final class TourController extends AbstractController
     }
 
     #[Route(name: 'app_tour_index', methods: ['GET'])]
-    public function index(TourRepository $tourRepository): Response
+    public function index(TourRepository $tourRepository,Request $request): Response
     {
+        $itemsPerPage = (int)$request->query->get('itemsPerPage', 2);
+        $page = (int)$request->query->get('page', 1);
+
+        $paginationData = $tourRepository->getPaginatedTours($itemsPerPage, $page);
+
         return $this->render('tour/index.html.twig', [
-            'tours' => $tourRepository->findAll(),
+            'tours' => $paginationData['tours'],
+            'totalItems' => $paginationData['totalItems'],
+            'totalPages' => $paginationData['totalPages'],
+            'currentPage' => $page,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 
