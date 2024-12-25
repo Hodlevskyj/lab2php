@@ -2,13 +2,36 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\GetCollection;
 use App\Repository\BookingRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
 
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['booking:read:collection']]
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['booking:write']]
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['booking:read:item']]
+        ),
+        new Patch(
+            denormalizationContext: ['groups' => ['booking:write']]
+        ),
+        new Delete()
+    ]
+)]
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
 class Booking
 {
@@ -20,35 +43,41 @@ class Booking
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: 'Tourist must not be null')]
+    #[Groups(['booking:read:item', 'booking:write'])]
     private ?Tourist $tourist = null;
 
     #[ORM\ManyToOne(inversedBy: 'bookings')]
     #[ORM\JoinColumn(nullable: false)]
     #[Assert\NotNull(message: 'Tour must not be null')]
+    #[Groups(['booking:read:item', 'booking:write'])]
     private ?Tour $tour = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[ORM\Column(type: 'datetime_mutable')]
     #[Assert\NotBlank(message: 'Booking date is required')]
     #[Assert\Type(\DateTimeInterface::class, message: 'Invalid date format')]
     #[Assert\GreaterThan('today', message: 'Booking date must be in the future')]
-    private ?\DateTimeInterface $booking_date = null;
+    #[Groups(['booking:read:item', 'booking:write'])]
+    private ?\DateTimeInterface $bookingDate = null;
 
     #[ORM\Column]
     #[Assert\NotNull(message: 'Number of people must not be null')]
     #[Assert\Positive(message: 'Number of people must be a positive number')]
-    #[Assert\LessThanOrEqual(value: 100, message: 'Number of people cannot exceed 100')] // Максимальне значення за вашим бажанням
-    private ?int $number_of_people = null;
+    #[Assert\LessThanOrEqual(value: 100, message: 'Number of people cannot exceed 100')]
+    #[Groups(['booking:read:item', 'booking:write'])]
+    private ?int $numberOfPeople = null;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     #[Assert\NotBlank(message: 'Total price is required')]
     #[Assert\PositiveOrZero(message: 'Total price must be a positive number or zero')]
-    private ?string $total_price = null;
+    #[Groups(['booking:read:item', 'booking:write'])]
+    private ?string $totalPrice = null;
 
     /**
      * @var Collection<int, Payment>
      */
     #[ORM\OneToMany(targetEntity: Payment::class, mappedBy: 'booking')]
-    #[Assert\Valid] // Перевірка вкладених об'єктів (якщо Payment також має валідацію)
+    #[Assert\Valid]
+    #[Groups(['booking:read:item', 'booking:write'])]
     private Collection $amount;
 
     public function __construct()
@@ -87,36 +116,36 @@ class Booking
 
     public function getBookingDate(): ?\DateTimeInterface
     {
-        return $this->booking_date;
+        return $this->bookingDate;
     }
 
-    public function setBookingDate(\DateTimeInterface $booking_date): static
+    public function setBookingDate(\DateTimeInterface $bookingDate): static
     {
-        $this->booking_date = $booking_date;
+        $this->bookingDate = $bookingDate;
 
         return $this;
     }
 
     public function getNumberOfPeople(): ?int
     {
-        return $this->number_of_people;
+        return $this->numberOfPeople;
     }
 
-    public function setNumberOfPeople(int $number_of_people): static
+    public function setNumberOfPeople(int $numberOfPeople): static
     {
-        $this->number_of_people = $number_of_people;
+        $this->numberOfPeople = $numberOfPeople;
 
         return $this;
     }
 
     public function getTotalPrice(): ?string
     {
-        return $this->total_price;
+        return $this->totalPrice;
     }
 
-    public function setTotalPrice(string $total_price): static
+    public function setTotalPrice(string $totalPrice): static
     {
-        $this->total_price = $total_price;
+        $this->totalPrice = $totalPrice;
 
         return $this;
     }
@@ -142,7 +171,6 @@ class Booking
     public function removeAmount(Payment $amount): static
     {
         if ($this->amount->removeElement($amount)) {
-            // set the owning eside to null (unlss already changed)
             if ($amount->getBooking() === $this) {
                 $amount->setBooking(null);
             }

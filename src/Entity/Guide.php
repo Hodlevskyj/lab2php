@@ -2,19 +2,44 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\GetCollection;
 use App\Repository\GuideRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
 
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['guide:read:collection']]
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['guide:write']]
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['guide:read:item']]
+        ),
+        new Patch(
+            denormalizationContext: ['groups' => ['guide:write']]
+        ),
+        new Delete()
+    ]
+)]
 #[ORM\Entity(repositoryClass: GuideRepository::class)]
 class Guide
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['guide:read:collection', 'guide:read:item'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
@@ -23,6 +48,7 @@ class Guide
         max: 100,
         maxMessage: 'First name cannot be longer than {{ limit }} characters'
     )]
+    #[Groups(['guide:read:collection', 'guide:read:item', 'guide:write'])]
     private ?string $first_name = null;
 
     #[ORM\Column(length: 100)]
@@ -31,11 +57,13 @@ class Guide
         max: 100,
         maxMessage: 'Last name cannot be longer than {{ limit }} characters'
     )]
+    #[Groups(['guide:read:collection', 'guide:read:item', 'guide:write'])]
     private ?string $last_name = null;
 
     #[ORM\Column(length: 100)]
     #[Assert\NotBlank(message: 'Email is required')]
     #[Assert\Email(message: 'The email "{{ value }}" is not a valid email.')]
+    #[Groups(['guide:read:item', 'guide:write'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 15, nullable: true)]
@@ -47,6 +75,7 @@ class Guide
         pattern: "/^\+?[0-9]*$/",
         message: 'Phone number can only contain numbers and an optional leading "+"'
     )]
+    #[Groups(['guide:read:item', 'guide:write'])]
     private ?string $phone = null;
 
     #[ORM\Column(length: 50)]
@@ -55,6 +84,7 @@ class Guide
         max: 50,
         maxMessage: 'Language cannot be longer than {{ limit }} characters'
     )]
+    #[Groups(['guide:read:item', 'guide:write'])]
     private ?string $language = null;
 
     #[ORM\Column(type: Types::TEXT)]
@@ -63,13 +93,15 @@ class Guide
         max: 2000,
         maxMessage: 'Bio cannot be longer than {{ limit }} characters'
     )]
+    #[Groups(['guide:read:item', 'guide:write'])]
     private ?string $bio = null;
 
     /**
      * @var Collection<int, TourGuide>
      */
     #[ORM\OneToMany(targetEntity: TourGuide::class, mappedBy: 'guide')]
-    #[Assert\Valid] // Перевірка валідації для пов'язаних сутностей
+    #[Assert\Valid]
+    #[Groups(['guide:read:item', 'guide:write'])]
     private Collection $tourGuides;
 
     public function __construct()

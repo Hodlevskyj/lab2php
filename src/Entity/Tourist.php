@@ -2,19 +2,44 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use App\Repository\TouristRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
 
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['tourist:read:collection']]
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['tourist:write']]
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['tourist:read:item']]
+        ),
+        new Patch(
+            denormalizationContext: ['groups' => ['tourist:write']]
+        ),
+        new Delete()
+    ]
+)]
 #[ORM\Entity(repositoryClass: TouristRepository::class)]
 class Tourist
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['tourist:read:collection', 'tourist:read:item'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
@@ -23,6 +48,7 @@ class Tourist
         max: 100,
         maxMessage: 'First name cannot exceed {{ limit }} characters'
     )]
+    #[Groups(['tourist:read:collection', 'tourist:read:item', 'tourist:write'])]
     private ?string $first_name = null;
 
     #[ORM\Column(length: 100)]
@@ -31,11 +57,13 @@ class Tourist
         max: 100,
         maxMessage: 'Last name cannot exceed {{ limit }} characters'
     )]
+    #[Groups(['tourist:read:collection', 'tourist:read:item', 'tourist:write'])]
     private ?string $last_name = null;
 
     #[ORM\Column(length: 100, unique: true)]
     #[Assert\NotBlank(message: 'Email is required')]
     #[Assert\Email(message: 'Please enter a valid email address')]
+    #[Groups(['tourist:read:item', 'tourist:write'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 15, nullable: true)]
@@ -43,6 +71,7 @@ class Tourist
         pattern: '/^\+?[0-9]{7,15}$/',
         message: 'Please enter a valid phone number'
     )]
+    #[Groups(['tourist:read:item', 'tourist:write'])]
     private ?string $phone = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -52,18 +81,21 @@ class Tourist
         message: 'Invalid date format for registration date'
     )]
     #[Assert\LessThanOrEqual('now', message: 'Registration date cannot be in the future')]
+    #[Groups(['tourist:read:item', 'tourist:write'])]
     private ?\DateTimeInterface $registration_date = null;
 
     /**
      * @var Collection<int, Booking>
      */
     #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'tourist')]
+    #[Groups(['tourist:read:item'])]
     private Collection $bookings;
 
     /**
      * @var Collection<int, Review>
      */
     #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'tourist')]
+    #[Groups(['tourist:read:item'])]
     private Collection $rating;
 
     public function __construct()

@@ -2,19 +2,44 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use App\Repository\TourRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
 
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            normalizationContext: ['groups' => ['tour:read:collection']]
+        ),
+        new Post(
+            denormalizationContext: ['groups' => ['tour:write']]
+        ),
+        new Get(
+            normalizationContext: ['groups' => ['tour:read:item']]
+        ),
+        new Patch(
+            denormalizationContext: ['groups' => ['tour:write']]
+        ),
+        new Delete()
+    ]
+)]
 #[ORM\Entity(repositoryClass: TourRepository::class)]
 class Tour
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['tour:read:collection', 'tour:read:item'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
@@ -23,6 +48,7 @@ class Tour
         max: 100,
         maxMessage: 'The tour name cannot be longer than {{ limit }} characters'
     )]
+    #[Groups(['tour:read:collection', 'tour:read:item', 'tour:write'])]
     private ?string $name = null;
 
     #[ORM\Column(type: Types::TEXT)]
@@ -31,41 +57,38 @@ class Tour
         max: 5000,
         maxMessage: 'The description cannot exceed {{ limit }} characters'
     )]
+    #[Groups(['tour:read:item', 'tour:write'])]
     private ?string $description = null;
 
     #[ORM\Column]
     #[Assert\NotBlank(message: 'The duration is required')]
     #[Assert\Positive(message: 'The duration must be a positive number')]
+    #[Groups(['tour:read:collection', 'tour:read:item', 'tour:write'])]
     private ?int $duration = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 8, scale: 2)]
     #[Assert\NotBlank(message: 'The price is required')]
     #[Assert\Positive(message: 'The price must be greater than zero')]
+    #[Groups(['tour:read:collection', 'tour:read:item', 'tour:write'])]
     private ?string $price = null;
 
-    /**
-     * @var Collection<int, TourGuide>
-     */
-    #[ORM\OneToMany(targetEntity: TourGuide::class, mappedBy: 'tour')]
+    #[ORM\OneToMany(mappedBy: 'tour', targetEntity: TourGuide::class)]
+    #[Groups(['tour:read:item'])]
     private Collection $tourGuides;
 
-    /**
-     * @var Collection<int, Booking>
-     */
-    #[ORM\OneToMany(targetEntity: Booking::class, mappedBy: 'tour')]
+    #[ORM\OneToMany(mappedBy: 'tour', targetEntity: Booking::class)]
+    #[Groups(['tour:read:item'])]
     private Collection $bookings;
 
-    /**
-     * @var Collection<int, Review>
-     */
-    #[ORM\OneToMany(targetEntity: Review::class, mappedBy: 'tour')]
-    private Collection $tourist;
+    #[ORM\OneToMany(mappedBy: 'tour', targetEntity: Review::class)]
+    #[Groups(['tour:read:item'])]
+    private Collection $reviews;
 
     public function __construct()
     {
         $this->tourGuides = new ArrayCollection();
         $this->bookings = new ArrayCollection();
-        $this->tourist = new ArrayCollection();
+        $this->reviews = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -142,7 +165,6 @@ class Tour
     public function removeTourGuide(TourGuide $tourGuide): static
     {
         if ($this->tourGuides->removeElement($tourGuide)) {
-            // set the owning side to null (unless already changed)
             if ($tourGuide->getTour() === $this) {
                 $tourGuide->setTour(null);
             }
@@ -172,7 +194,6 @@ class Tour
     public function removeBooking(Booking $booking): static
     {
         if ($this->bookings->removeElement($booking)) {
-            // set the owning side to null (unless already changed)
             if ($booking->getTour() === $this) {
                 $booking->setTour(null);
             }
@@ -184,27 +205,26 @@ class Tour
     /**
      * @return Collection<int, Review>
      */
-    public function getTourist(): Collection
+    public function getReviews(): Collection
     {
-        return $this->tourist;
+        return $this->reviews;
     }
 
-    public function addTourist(Review $tourist): static
+    public function addReview(Review $review): static
     {
-        if (!$this->tourist->contains($tourist)) {
-            $this->tourist->add($tourist);
-            $tourist->setTour($this);
+        if (!$this->reviews->contains($review)) {
+            $this->reviews->add($review);
+            $review->setTour($this);
         }
 
         return $this;
     }
 
-    public function removeTourist(Review $tourist): static
+    public function removeReview(Review $review): static
     {
-        if ($this->tourist->removeElement($tourist)) {
-            // set the owning side to null (unless already changed)
-            if ($tourist->getTour() === $this) {
-                $tourist->setTour(null);
+        if ($this->reviews->removeElement($review)) {
+            if ($review->getTour() === $this) {
+                $review->setTour(null);
             }
         }
 
